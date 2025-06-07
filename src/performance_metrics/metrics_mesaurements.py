@@ -4,17 +4,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from .performance_metrics import PerformanceMetrics
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score
-)
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
 
-def compare_function_time(
-    func, *args, n: int = 10, **kwargs
-) -> Tuple[float, float]:
+def compare_function_time(func, *args, n: int = 10, **kwargs) -> Tuple[float, float]:
     start = time.perf_counter()
     for _ in range(n):
         func(*args, **kwargs)
@@ -22,27 +15,14 @@ def compare_function_time(
     return total / n, total
 
 
-def calculate_init_plus_calculation_time(
-    predictions: Union[list, np.ndarray],
-    actual: Union[list, np.ndarray],
-    metric_name: str,
-    average: str = 'micro',
-    n: int = 10
-) -> Tuple[float, float]:
+def calculate_init_plus_calculation_time(predictions: Union[list, np.ndarray], actual: Union[list, np.ndarray], metric_name: str, average: str = 'micro', n: int = 10) -> Tuple[float, float]:
     wrapper = lambda: getattr(
         PerformanceMetrics(predictions, actual), metric_name
     )(average)
     return compare_function_time(wrapper, n=n)
 
 
-def plot_execution_times(
-    metric_name: str,
-    sklearn_fn: Callable,
-    predictions: Union[List, np.ndarray],
-    actual: Union[List, np.ndarray],
-    ns: List[int],
-    average: str = 'micro'
-):
+def plot_execution_times(metric_name: str, sklearn_fn: Callable, predictions: Union[List, np.ndarray], actual: Union[List, np.ndarray], ns: List[int], average: str = 'micro'):
     our_avgs, our_totals = [], []
     sk_avgs, sk_totals = [], []
 
@@ -83,12 +63,7 @@ def plot_execution_times(
     plt.show()
 
 
-def compare_metrics_df(
-    perf: PerformanceMetrics,
-    y_true: Union[list, np.ndarray],
-    y_pred: Union[list, np.ndarray],
-    average: str = 'micro'
-) -> pd.DataFrame:
+def compare_metrics_df(perf: PerformanceMetrics, y_true: Union[list, np.ndarray], y_pred: Union[list, np.ndarray],average: str = 'micro') -> pd.DataFrame:
     # our metrics
     my_acc, my_prec, my_rec, my_f1 = (
         perf.accuracy(average),

@@ -31,10 +31,7 @@ class PerformanceMetrics():
             }
         return per_class
 
-    def _aggregate(self,
-                   per_class_vals: Dict[str, float],
-                   average: Optional[str]
-                   ) -> Union[float, Dict[str, float]]:
+    def _aggregate(self, per_class_vals: Dict[str, float], average: Optional[str]) -> Union[float, Dict[str, float]]:
         if average == 'per_class':
             return per_class_vals
         if average == 'macro':
