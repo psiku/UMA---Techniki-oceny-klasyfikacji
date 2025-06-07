@@ -1,17 +1,10 @@
-from sklearn.model_selection import train_test_split
 import pandas as pd
 import os
-import numpy as np
 
 
 def get_project_root():
     return os.path.dirname(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.abspath(__file__)
-            )
-        )
-    )
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 def load_breath_cancer_data():
@@ -35,16 +28,3 @@ def load_students_data():
     students_df = pd.concat([mat_df, por_df], ignore_index=True)
 
     return students_df
-
-
-def prepare_data(df, target_column, test_size=0.2, random_state=42, stratify=True):
-    X = df.drop(columns=[target_column])
-    y = df[target_column]
-
-    if isinstance(stratify, np.ndarray) or hasattr(stratify, "__iter__"):
-        stratify_arg = stratify
-    else:
-        stratify_arg = y if stratify else None
-
-    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify_arg)
-    return x_train, x_test, y_train, y_test
