@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from collections import Counter
 
 
@@ -157,3 +158,34 @@ class PerformanceMetrics():
             return self.f1_score(average=average)
         else:
             raise ValueError(f"Unsupported metric: {metric}")
+
+    def print_report(self):
+        print("Our Classification Report")
+        print("=" * 60)
+
+        # Per-class metrics
+        labels = self.labels
+        data = {
+            'Accuracy': self.accuracy(average='per_class'),
+            'Precision': self.precision(average='per_class'),
+            'Recall': self.recall(average='per_class'),
+            'F1 Score': self.f1_score(average='per_class'),
+        }
+
+        df = pd.DataFrame(data, index=labels)
+        print(df.round(4))
+        
+        print("\nAveraged metrics:")
+        print("-" * 60)
+        for avg in ['micro', 'macro', 'weighted']:
+            acc = self.accuracy(average=avg)
+            prec = self.precision(average=avg)
+            rec = self.recall(average=avg)
+            f1 = self.f1_score(average=avg)
+            print(f"{avg.capitalize():<9} | "
+                f"Acc: {acc:.4f}  "
+                f"Prec: {prec:.4f}  "
+                f"Rec: {rec:.4f}  "
+                f"F1: {f1:.4f}")
+
+        print("=" * 60)

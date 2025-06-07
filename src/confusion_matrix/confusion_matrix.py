@@ -43,7 +43,7 @@ class ConfusionMatrix:
                     xticklabels=self.labels, yticklabels=self.labels, cmap=cmap)
         plt.xlabel('Predicted')
         plt.ylabel('True')
-        plt.title('Confusion Matrix' + (' (Normalized)' if normalize else ''))
+        plt.title('Our Confusion Matrix' + (' (Normalized)' if normalize else ''))
         plt.show()
 
     # TP FN
