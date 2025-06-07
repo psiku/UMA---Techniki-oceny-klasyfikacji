@@ -13,7 +13,7 @@ def test_performance_metrics_initialization():
 def test_performance_metrics_initialization_different_lengths():
     try:
         PerformanceMetrics([1,2], [1,2,3])
-    except AssertionError:
+    except ValueError:
         assert True
     else:
         assert False
@@ -99,7 +99,7 @@ def test_accuracy_wrong_average_type():
     try:
         performance_metrics.accuracy('wrong')
     except ValueError as e:
-        assert str(e) == "Unsupported average type: wrong"
+        assert str(e) == "Unsupported metric: wrong"
     else:
         assert False
 
@@ -164,7 +164,7 @@ def test_precision_wrong_average():
     try:
         metrics.precision(average='wrong')
     except ValueError as e:
-        assert str(e) == "Unsupported average type: wrong"
+        assert str(e) == "Unsupported metric: wrong"
     else:
         assert False
 
@@ -229,7 +229,7 @@ def test_recall_wrong_average():
     try:
         metrics.recall(average='wrong')
     except ValueError as e:
-        assert str(e) == "Unsupported average type: wrong"
+        assert str(e) == "Unsupported metric: wrong"
     else:
         assert False
 
@@ -243,6 +243,7 @@ def test_f1_score_macro():
     expected = 4 / 5
     assert f1 == pytest.approx(expected, rel=1e-6)
 
+
 def test_f1_score_micro_two_class():
     actual = [0, 1, 1, 0, 1]
     predicted = [0, 1, 0, 0, 1]
@@ -250,6 +251,7 @@ def test_f1_score_micro_two_class():
 
     expected = 0.8
     assert metrics.f1_score(average='micro') == pytest.approx(expected, rel=1e-6)
+
 
 def test_f1_score_micro_three_class():
     actual = [0, 1, 2, 2]
@@ -296,6 +298,6 @@ def test_f1_score_wrong_average():
     try:
         metrics.f1_score(average='wrong')
     except ValueError as e:
-        assert str(e) == "Unsupported average type: wrong"
+        assert str(e) == "Unsupported metric: wrong"
     else:
         assert False

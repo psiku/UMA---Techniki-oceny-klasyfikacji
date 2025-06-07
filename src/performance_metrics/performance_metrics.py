@@ -1,151 +1,100 @@
 import numpy as np
-import pandas as pd
 from collections import Counter
+from typing import Dict, Union, Optional
 
 
 class PerformanceMetrics():
     def __init__(self, predicted, actual):
         self.predicted = np.array(predicted)
         self.actual = np.array(actual)
+
+        if self.predicted.shape != self.actual.shape:
+            raise ValueError("Predicted and actual arrays must have the same shape.")
+
         self.labels = np.unique(np.concatenate((self.actual, self.predicted)))
+        self.counts = Counter(self.actual)
 
-        assert len(self.actual) == len(self.predicted)
-        self.class_count = Counter(self.actual)
-
-    def accuracy(self, average: str = None):
-        per_class_accuracy = {}
-        class_counts = self.class_count
+    def _per_class(self):
+        per_class = {}
+        total = len(self.actual)
 
         for label in self.labels:
-            mask = self.actual == label
-            correct = (self.predicted[mask] == self.actual[mask]).sum()
-            total = mask.sum()
-            per_class_accuracy[label] = correct / total if total > 0 else 0.0
+            tp = np.sum((self.predicted == label) & (self.actual == label))
+            fp = np.sum((self.predicted == label) & (self.actual != label))
+            fn = np.sum((self.predicted != label) & (self.actual == label))
+            tn = total - tp - fp - fn
+            per_class[label] = {
+                'tp': tp,
+                'fp': fp,
+                'fn': fn,
+                'tn': tn,
+            }
+        return per_class
 
-        if average is None or average == 'micro':
-            correct = (self.predicted == self.actual).sum()
-            return correct / len(self.predicted)
-
-        elif average == 'macro':
-            return np.mean(list(per_class_accuracy.values()))
-
-        elif average == 'weighted':
-            total_samples = len(self.actual)
-            weighted_sum = sum(per_class_accuracy[label] * class_counts[label] for label in self.labels)
-            return weighted_sum / total_samples
-
-        elif average == 'per_class':
-            return per_class_accuracy
-
-        else:
-            raise ValueError(f"Unsupported average type: {average}")
-
-    def precision(self, average: str):
-        per_class_tp = {}
-        per_class_fp = {}
-        class_counts = self.class_count
-
-        for label in self.labels:
-            per_class_tp[label] = np.sum((self.predicted == label) & (self.actual == label))
-            per_class_fp[label] = np.sum((self.predicted == label) & (self.actual != label))
-
-        per_class_precision = {}
-        for label in self.labels:
-            tp = per_class_tp[label]
-            fp = per_class_fp[label]
-            precision = tp / (tp + fp)
-            per_class_precision[label] = precision
-
-        if average == 'macro':
-            return np.mean(list(per_class_precision.values()))
-
-        elif average == 'weighted':
-            total_samples = len(self.actual)
-            weighted_sum = sum(per_class_precision[label] * class_counts[label] for label in self.labels)
-            return weighted_sum / total_samples
-
-        elif average == 'micro':
-            tp = np.sum(list(per_class_tp.values()))
-            fp = np.sum(list(per_class_fp.values()))
-            return tp / (tp + fp)
-
-        elif average == 'per_class':
-            return per_class_precision
-
-        else:
-            raise ValueError(f"Unsupported average type: {average}")
-
-    def recall(self, average: str = 'micro'):
-        per_class_tp = {}
-        per_class_fn = {}
-        class_counts = self.class_count
-
-        for label in self.labels:
-            per_class_tp[label] = np.sum((self.predicted == label) & (self.actual == label))
-            per_class_fn[label] = np.sum((self.predicted != label) & (self.actual == label))
-
-        per_class_recall = {}
-        for label in self.labels:
-            tp = per_class_tp[label]
-            fn = per_class_fn[label]
-            recall = tp / (tp + fn)
-            per_class_recall[label] = recall
-
-        if average == 'macro':
-            return np.mean(list(per_class_recall.values()))
-
-        elif average == 'weighted':
-            total_samples = len(self.actual)
-            weighted_sum = sum(per_class_recall[label] * class_counts[label] for label in self.labels)
-            return weighted_sum / total_samples
-
-        elif average == 'micro':
-            tp = np.sum(list(per_class_tp.values()))
-            fn = np.sum(list(per_class_fn.values()))
-            return tp / (tp + fn)
-
-        elif average == 'per_class':
-            return per_class_recall
-
-        else:
-            raise ValueError(f"Unsupported average type: {average}")
-
-    def f1_score(self, average: str = 'micro'):
-        per_class_tp = {label: np.sum((self.predicted==label)&(self.actual==label))
-                        for label in self.labels}
-        per_class_fp = {label: np.sum((self.predicted==label)&(self.actual!=label))
-                        for label in self.labels}
-        per_class_fn = {label: np.sum((self.predicted!=label)&(self.actual==label))
-                        for label in self.labels}
-
-        per_class_f1 = {}
-        for label in self.labels:
-            tp = per_class_tp[label]
-            fp = per_class_fp[label]
-            fn = per_class_fn[label]
-            denom = 2*tp + fp + fn
-            per_class_f1[label] = (2*tp / denom) if denom>0 else 0.0
-
+    def _aggregate(self,
+                   per_class_vals: Dict[str, float],
+                   average: Optional[str]
+                   ) -> Union[float, Dict[str, float]]:
         if average == 'per_class':
-            return per_class_f1
-
-        elif average == 'macro':
-            return np.mean(list(per_class_f1.values()))
-
-        elif average == 'weighted':
+            return per_class_vals
+        if average == 'macro':
+            return np.mean(list(per_class_vals.values()))
+        if average == 'weighted':
             total = len(self.actual)
-            return sum(per_class_f1[label] * self.class_count[label]
-                    for label in self.labels) / total
+            return sum(val * self.counts[label]
+                       for label, val in per_class_vals.items()) / total
+        if average is None or average == 'micro':
+            return None
+        raise ValueError(f"Unsupported metric: {average}")
 
-        elif average == 'micro':
-            tp = sum(per_class_tp.values())
-            fp = sum(per_class_fp.values())
-            fn = sum(per_class_fn.values())
-            denom = 2*tp + fp + fn
-            return (2*tp / denom) if denom>0 else 0.0
+    def accuracy(self, average: Optional[str] = None) -> Union[float, Dict[str, float]]:
+        per = self._per_class()
+        per_acc = {
+            lbl: (v['tp'] / (v['tp'] + v['fn']))  if (v['tp'] + v['fn']) > 0 else 0.0 for lbl, v in per.items()
+        }
+        if average in (None, 'micro'):
+            return np.mean(self.predicted == self.actual)
+        return self._aggregate(per_acc, average)
 
-        else:
-            raise ValueError(f"Unsupported average type: {average}")
+    def precision(self, average: str = 'micro') -> Union[float, Dict[str, float]]:
+        per = self._per_class()
+        per_prec = {lbl: (v['tp'] / (v['tp'] + v['fp']))
+                    if (v['tp'] + v['fp']) > 0 else 0.0
+                    for lbl, v in per.items()}
+
+        if average == 'micro':
+            total_tp = sum(v['tp'] for v in per.values())
+            total_fp = sum(v['fp'] for v in per.values())
+            return total_tp / (total_tp + total_fp) if (total_tp + total_fp) > 0 else 0.0
+        return self._aggregate(per_prec, average)
+
+    def recall(self, average: str = 'micro') -> Union[float, Dict[str, float]]:
+        per = self._per_class()
+        per_rec = {lbl: (v['tp'] / (v['tp'] + v['fn']))
+                   if (v['tp'] + v['fn']) > 0 else 0.0
+                   for lbl, v in per.items()}
+
+        if average == 'micro':
+            total_tp = sum(v['tp'] for v in per.values())
+            total_fn = sum(v['fn'] for v in per.values())
+            return total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0.0
+        return self._aggregate(per_rec, average)
+
+    def f1_score(self, average: str = 'micro') -> Union[float, Dict[str, float]]:
+        per = self._per_class()
+        per_f1 = {}
+        for lbl, v in per.items():
+            denom = 2 * v['tp'] + v['fp'] + v['fn']
+            per_f1[lbl] = (2 * v['tp'] / denom) if denom > 0 else 0.0
+
+        if average == 'micro':
+            tot_tp = sum(v['tp'] for v in per.values())
+            tot_fp = sum(v['fp'] for v in per.values())
+            tot_fn = sum(v['fn'] for v in per.values())
+            denom = 2 * tot_tp + tot_fp + tot_fn
+            return (2 * tot_tp / denom) if denom > 0 else 0.0
+
+        return self._aggregate(per_f1, average)
 
     def calculate_metric(self, metric: str, average: str = 'micro'):
         if metric == 'accuracy':
@@ -158,34 +107,3 @@ class PerformanceMetrics():
             return self.f1_score(average=average)
         else:
             raise ValueError(f"Unsupported metric: {metric}")
-
-    def print_report(self):
-        print("Our Classification Report")
-        print("=" * 60)
-
-        # Per-class metrics
-        labels = self.labels
-        data = {
-            'Accuracy': self.accuracy(average='per_class'),
-            'Precision': self.precision(average='per_class'),
-            'Recall': self.recall(average='per_class'),
-            'F1 Score': self.f1_score(average='per_class'),
-        }
-
-        df = pd.DataFrame(data, index=labels)
-        print(df.round(4))
-        
-        print("\nAveraged metrics:")
-        print("-" * 60)
-        for avg in ['micro', 'macro', 'weighted']:
-            acc = self.accuracy(average=avg)
-            prec = self.precision(average=avg)
-            rec = self.recall(average=avg)
-            f1 = self.f1_score(average=avg)
-            print(f"{avg.capitalize():<9} | "
-                f"Acc: {acc:.4f}  "
-                f"Prec: {prec:.4f}  "
-                f"Rec: {rec:.4f}  "
-                f"F1: {f1:.4f}")
-
-        print("=" * 60)
