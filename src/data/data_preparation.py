@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
@@ -22,3 +23,9 @@ def encode_categorical_columns(df, columns):
             le = LabelEncoder()
             df[column] = le.fit_transform(df[column])
     return df
+
+
+def kfold_data_preparation(df: pd.DataFrame, label: str):
+    y = df[label]
+    x = df.drop(columns=label)
+    return x, y
